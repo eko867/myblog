@@ -7,11 +7,13 @@ use MyProject\Models\Articles\Article;
 
 class ArticlesController{
     private $view; /** @var View */
-    private $db; /** @var Db */
+    //private $db; /** @var Db */
 
     public function __construct()
     {
         $this->view=new View(__DIR__.'/../../../templates');
+        //c переходом на ORM ActiveRecord контроллер не должен заниматься работой с БД,
+        // этим займутся сами объекты (за счет статических CRUD операций)
         //$this->db=new Db();
     }
 
@@ -46,13 +48,13 @@ class ArticlesController{
             $article->setCreatedAt(date("Y-m-d H:i:s"));
             $article->setName('New author');
             $article->setText('New text');
-            $article->save();
+            $article->save(); //выполнит insert
             $this->view->renderHtml('/newarticle.php', ['article' => $article, 'title' => 'creating new article']);
         }
         else { //либо редактируем старую
             $article->setName('New author');
             $article->setText('New text');
-            $article->save();
+            $article->save(); //выполнит update
         }
 
     }

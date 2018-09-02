@@ -11,7 +11,7 @@ abstract class ActiveRecordEntity{
 
     public function __set($string_with_smth,$value){
         $stringWithSmth=$this->underscoreToCamelCase($string_with_smth);
-        //динамически создаем поле, название которое есть содержимое строки $stringWithSmth (camelCase), а значение берем из $value
+        //динамически создаем поле, название которого есть содержимое строки $stringWithSmth (camelCase), а значение берем из $value
         $this->$stringWithSmth=$value;
     }
 
@@ -26,7 +26,9 @@ abstract class ActiveRecordEntity{
     private function camelCaseToUnderscore($stringWithSmth):string {
         //(?<!pattern) отрицательное look-behind условие (это значит что у подходящей подстроки начало не должно совпадать с pattern)
         //(?<!^)[A-Z] ищем заглавные буквы, кроме заглавной буквы в начале исходной строки (т.к у нас camelCase)
-        //плюс эти выдернутые заглавные буквы мы сможем забрать по $0 (лежат в нулевом элементе массива с результатами) и вставить перед ними _
+        //$0 - это ссылка, соответсвующая всему найденному шаблону (т.е как бы нулевой эл-т массива с результатми)
+        //поэтому выдернутые заглавные буквы мы сможем забрать по ссылке $0 и вставить перед ними _
+        //хз как работает ссылка, но работает даже с несколькими заглавными буквами в строке
         $string_With_Smth=preg_replace('/(?<!^)[A-Z]/', '_$0', $stringWithSmth);
         //опускаем регистр
         $string_with_smth=strtolower($string_With_Smth);
@@ -52,7 +54,7 @@ abstract class ActiveRecordEntity{
         $entities = $db->query(
             'SELECT * FROM `'.static::getTableName().'` WHERE `id`=:id ;' ,
             [':id'=> $id],
-            static::class
+            static::class //static говорит подставить тот класс, в котором будут вызван метод (а не родительский класс)
             );
         return $entities ? $entities[0] : null; //if ($entities) return $entities[0]; else return null;
     }
@@ -119,7 +121,7 @@ abstract class ActiveRecordEntity{
 
 
         //сейчас у нас массив ['property1'=>value1, ...]
-        //надо сделать 2 массива
+        //надо сделать 3 массива
         //первый массив-набор строк ['property1',...]
         //второй массив-набор строк [':value1', ...]
         //третий массив - ассоциативный [':param1'=>value,...]  //нужен для биндинга
@@ -142,7 +144,6 @@ abstract class ActiveRecordEntity{
         $dB->query($sql,$paramValueArray,static::class);
 
         //все новосозданные свойства(например, id, created_at) пропишем через refreshObj() внутри save()
-        $this->id=$dB->getLastInsertId();
         $this->refreshObj();
     }
 

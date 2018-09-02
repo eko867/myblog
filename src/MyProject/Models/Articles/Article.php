@@ -9,8 +9,8 @@ class Article extends ActiveRecordEntity
     protected $name; //string
     protected $text; //string
     protected $authorId; //string //в самой таблице в БД author_id
-    // //будем лечить попытки создания новых полей через магический метод _set($dinamicly_created_name, $value)
     protected $createdAt; //string //в самой таблице в БД created_at
+    // //будем лечить попытки создания новых полей через магический метод _set($dinamicly_created_name, $value) (описан в родителе)
 
     public function getName():string {
         return $this->name;

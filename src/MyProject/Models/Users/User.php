@@ -10,6 +10,7 @@ class User extends ActiveRecordEntity
     protected $passwordHash; /** @var string */
     protected $authToken; /** @var string */
     protected $createdAt; /** @var string */
+    // будем лечить попытки создания новых полей через магический метод _set($dinamicly_created_name, $value) (описан в родителе)
 
     public function getNickname(): string{
         return !empty($this->nickname) ? $this->nickname : 'deleted user';
