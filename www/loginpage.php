@@ -4,9 +4,9 @@ require __DIR__.'/auth.php';
 if (getUserLoginFromCookie()!=null)
     header('Location: /index.php'); //redirect
 if(!empty($_POST)){
-    $login = empty($_POST['login']) ? '' : $_POST['login'] ; //$login = $_POST['login'] ?? '';
+    $login = !empty($_POST['login'])    ?   $_POST['login'] : '' ; //$login = $_POST['login'] ?? '';
     // ?? - coalescing operator (говорит, что делать, если переменная не была установлена (т.е. NULL)
-    $password = empty($_POST['password']) ? '' : $_POST['password']; // $password=$_POST['password'] ?? '';
+    $password = !empty($_POST['password'])   ?   $_POST['password'] : ''; // $password=$_POST['password'] ?? '';
 
     if(checkAuth($login,$password)){
     setcookie('login',$login,0,'/');
