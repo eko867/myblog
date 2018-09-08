@@ -1,0 +1,184 @@
+CREATE TABLE `library`.`books` ( `book_id` INT NOT NULL AUTO_INCREMENT , `book_name` VARCHAR(255) NOT NULL , PRIMARY KEY (`book_id`)) ENGINE = InnoDB CHARSET=utf8 COLLATE utf8_unicode_ci;
+
+CREATE TABLE `library`.`authors` ( `author_id` INT NOT NULL AUTO_INCREMENT , `author_name` VARCHAR(255) NOT NULL , PRIMARY KEY (`author_id`)) ENGINE = InnoDB CHARSET=utf8 COLLATE utf8_unicode_ci;
+
+CREATE TABLE `library`.`links` ( `link_id` INT NOT NULL AUTO_INCREMENT , `book_id` INT NOT NULL , `author_id` INT NOT NULL , PRIMARY KEY (`link_id`)) ENGINE = InnoDB CHARSET=utf8 COLLATE utf8_unicode_ci;
+
+
+
+SELECT `authors`.`author_id` FROM `authors` WHERE ( SELECT COUNT(`links`.`author_id`) FROM `links` WHERE `links`.`author_id`=`authors`.`author_id` )<3;
+
+SELECT authors.author_name FROM authors, (SELECT author_id as a, COUNT(author_id) AS c FROM links GROUP by author_id ) AS r WHERE r.a=authors.author_id AND r.c<3
+SELECT t.n, t.c FROM ( SELECT author_name n, COUNT(a.author_id) c FROM links l INNER JOIN authors a ON a.author_id=l.author_id GROUP BY author_name) t WHERE t.c<4
+
+SELECT COUNT(author_id) FROM links GROUP by author_id
+
+
+ПСЕВДОНИМЫ AS можно дать столюцам-результатам запроса, а еще таблицам, откуда выгребаем: SELECT z.s1 FROM (SELECT stolbec1 AS s1, stolbec2 AS s2 FROM table1 as t1) AS z
+
+
+SELECT t1.maker, Product.type FROM Product, (SELECT COUNT(type) AS ct , COUNT(model) AS cm, maker FROM Product GROUP BY maker) as t1 WHERE t1.ct=1 AND t1.cm>1 AND t1.maker=Product.maker
+
+
+GROUP BY ... - равносильно словам "для каждого уникального элемента в столбце ...)
+ORDER BY ... ASC/DESC - равносильно словам "по возрастанию/убыванию элементав в столбце...) (причем элемент в таком столбце мб и не уникален)
+
+COUNT(столбец) //кол-во записей в столбце //часто далее идет GROUP BY (другой столбец)
+СOUNT(DISTINCT столбец) //кол-во уник.записей в столбце
+
+
+порядок следования:
+FROM
+WHERE
+GROUP BY
+HAVING (СOUNT, AVG, MIN, MAX...)
+SELECT
+ORDER BY
+
+#14 - Найти производителей, которые выпускают более одной модели, при этом все выпускаемые производителем модели являются продуктами одного типа. Вывести: maker, type
+SELECT DISTINCT t1.maker, type  FROM 
+Product,
+(SELECT maker, count(distinct type) as c FROM Product GROUP BY maker) AS t1,
+(SELECT maker, COUNT(distinct model)  as c FROM Product GROUP BY maker) as t2
+WHERE t1.c=1 AND t1.maker=Product.maker AND t2.c>1 AND t2.maker=Product.maker
+
+#15
+SELECT t.hd FROM (SELECT DISTINCT hd, COUNT(hd) as c FROM Pc GROUP BY hd) as t WHERE t.c>1
+SELECT DISTINCT hd FROM Pc GROUP BY hd HAVING COUNT(hd) >1
+
+#16
+SELECT DISTINCT t1.model, t2.model, t1.speed, t1.ram FROM PC AS t1, PC as t2 WHERE t1.speed=t2.speed AND t1.ram=t2.ram AND t1.model>t2.model ORDER BY t1.model
+SELECT 'Laptop' as type, l.model, l.speed FROM Laptop as l, PC as p WHERE l.speed>ANY( SELECT speed FROM PC)
+
+#17
+SELECT DISTINCT type, l.model, l.speed FROM Laptop as l, Product  WHERE l.speed<ALL(SELECT speed FROM Pc) AND l.model = Product.model //DISTINCT на случай если в Laptop несколько товаров одной модели)
+
+#18
+SELECT DISTINCT maker, price FROM Product INNER JOIN Printer ON Printer.model=Product.model WHERE price=(SELECT MIN(price) FROM Printer WHERE color='y') AND color='y'
+
+#19
+SELECT DISTINCT maker, AVG(screen) FROM Laptop INNER JOIN Product ON Laptop.model=Product.model WHERE Product.type='Laptop' GROUP BY maker
+
+#20
+SELECT maker, COUNT(distinct model) FROM Product WHERE type='PC' GROUP BY (maker) HAVING COUNT(distinct model)>=3
+
+#21
+SELECT maker, MAX(price) FROM Pc INNER JOIN Product ON Pc.model=Product.model GROUP BY maker
+
+#22
+SELECT speed, AVG(price) FROM Pc WHERE speed>600 GROUP BY speed
+
+#23
+SELECT DISTINCT maker FROM Pc INNER JOIN Product ON Pc.model=Product.model WHERE speed>=750
+INTERSECT
+SELECT DISTINCT maker FROM Laptop INNER JOIN Product ON Laptop.model=Product.model WHERE speed>=750
+
+#24 CTE (Common table expressions) CREATE VIEW nameView AS SELECT.... GO SELECT / WITH nameWith AS (...)
+WITH globalUnion AS (
+SELECT model,price FROM PC
+UNION 
+SELECT model,price FROM Laptop
+UNION
+SELECT model, price FROM Printer
+)
+SELECT model FROM globalUnion WHERE price=(SELECT MAX(price) FROM globalUnion)
+
+#26
+SELECT AVG(price) FROM (
+SELECT price FROM Pc INNER JOIN Product ON Pc.model=Product.model WHERE maker='A' 
+UNION ALL //сохраняет дубликаты строк, если таковые имелись
+SELECT price FROM Laptop INNER JOIN Product ON Laptop.model=Product.model WHERE maker='A'
+) AS t
+
+#27
+SELECT maker, AVG(hd) FROM Pc INNER JOIN Product ON Pc.model=Product.model WHERE
+maker IN (SELECT maker FROM Product WHERE type='Printer') GROUP by maker
+
+#28
+SELECT COUNT(maker) FROM (
+ SELECT maker FROM Product GROUP BY maker HAVING COUNT(model)=1
+) AS t
+
+#29  (левая таблица КАКОЙ_ТО ДЖОЙН правая таблица)ПОМНИТЬ!!!!
+SELECT 
+CASE
+WHEN i.point IS NOT NULL
+THEN i.point
+END point,
+
+CASE
+WHEN i.date IS NOT NULL
+THEN i.date
+END date,
+
+inc, out
+FROM Income_o i LEFT OUTER JOIN Outcome_o o ON i.date=o.date AND i.point=o.point
+
+UNION
+
+SELECT 
+CASE
+WHEN o.point IS NOT NULL
+THEN o.point
+END point,
+
+CASE
+WHEN o.date IS NOT NULL
+THEN o.date
+END date,
+
+inc, out
+FROM Income_o i RIGHT OUTER JOIN Outcome_o o ON i.date=o.date AND i.point=o.point
+
+#30
+WITH t1 AS (
+SELECT
+point, date, SUM(inc) as i
+FROM Income GROUP BY point,date )
+
+, t2 AS ( SELECT
+point, date, SUM(out) as o
+FROM Outcome GROUP BY point,date )
+
+SELECT t1.point, t1.date, o,i  FROM t1 LEFT OUTER JOIN t2 ON t1.point=t2.point AND t1.date=t2.date
+UNION
+SELECT t2.point, t2.date, o,i  FROM t1 RIGHT OUTER JOIN t2 ON t1.point=t2.point AND t1.date=t2.date
+
+
+
+#31 (в БД глюк, кораблей у Германии нет) (работа с округлениями)
+SELECT country, CAST(AVG(mw) AS NUMERIC(7,2)) FROM (
+
+SELECT 0.5*bore*bore*bore AS mw  , country , name FROM Ships INNER JOIN Classes ON Classes.class=Ships.class
+) AS t GROUP BY country
+
+#35 (в SQL ебаная регулярка, не работает REGEXP
+SELECT DISTINCT model, type FROM Product WHERE model NOT LIKE '%[0-9]%' 
+UNION 
+SELECT DISTINCT model, type FROM Product WHERE model NOT LIKE '%[a-zA-Z]%'
+
+#39
+WITH t1 AS
+(
+SELECT ship, date FROM Outcomes o INNER JOIN Battles b ON b.name=o.battle  WHERE result='damaged'
+)
+,t2 AS(
+SELECT ship, date FROM Outcomes o INNER JOIN Battles b ON b.name=o.battle
+)
+
+SELECT DISTINCT t2.ship FROM t1,t2 WHERE t1.ship=t2.ship AND t1.date<t2.date
+
+
+#41  делаем из строки столбец
+SELECT chr,value FROM (
+
+SELECT * FROM (
+SELECT
+CAST(model as VARCHAR) model, CAST(speed as VARCHAR) speed, CAST(ram as VARCHAR) ram, CAST(hd as VARCHAR) hd, CAST(cd as VARCHAR) cd, CAST(price as VARCHAR) price
+FROM Pc WHERE code=(SELECT MAX(code) FROM Pc)
+)t
+UNPIVOT(
+value for chr in (model,speed,ram,hd,cd,price)
+)u
+
+)y
